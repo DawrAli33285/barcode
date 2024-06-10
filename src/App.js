@@ -1,25 +1,64 @@
-import logo from './logo.svg';
-import './App.css';
+import React, { useState, useEffect } from 'react';
+import Quagga from 'quagga';
 
-function App() {
+const App = () => {
+  const [scannedBarcode, setScannedBarcode] = useState('');
+
+  useEffect(() => {
+    Quagga.init(
+      {
+        inputStream: {
+          type: 'LiveStream',
+          constraints: {
+            width: 640,
+            height: 320,
+            facingMode: 'environment',
+          },
+        },
+        locator: {
+          halfSample: true,
+          patchSize: 'large',
+        },
+        numOfWorkers: 4,
+        decoder: {
+          readers: ['code_128_reader'], // Specify barcode types to detect here
+        },
+        locate: true,
+        debug: {
+          drawBoundingBox: true,
+          drawScanline: true,
+        },
+      },
+      function (err) {
+        if (err) {
+          console.error('Error initializing Quagga:', err);
+          return;
+        }
+        Quagga.start();
+      }
+    );
+
+    Quagga.onDetected(handleBarcodeDetection);
+
+    return () => {
+      Quagga.offDetected(handleBarcodeDetection);
+      Quagga.stop();
+    };
+  }, []);
+
+  const handleBarcodeDetection = (result) => {
+    if (result && result.codeResult && result.codeResult.code) {
+      setScannedBarcode(result.codeResult.code);
+    }
+  };
+
   return (
     <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
+      <h1>Barcode Scanner</h1>
+      <div id="interactive" className="viewport" />
+      <p>Scanned Barcode: {scannedBarcode}</p>
     </div>
   );
-}
+};
 
 export default App;
